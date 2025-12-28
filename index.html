@@ -35,7 +35,7 @@
             background: radial-gradient(circle at center, #1a1a1a 0%, #0d0d0d 100%);
         }
 
-        /* --- BOTÓN VOLVER (ESTILO MADRE) --- */
+        /* --- BOTÓN VOLVER ACTUALIZADO --- */
         .back-button {
             position: absolute;
             top: 20px;
@@ -53,6 +53,8 @@
             transition: 0.3s;
             backdrop-filter: blur(10px);
             text-transform: uppercase;
+            text-decoration: none;
+            display: inline-block;
         }
 
         .back-button:hover {
@@ -230,7 +232,8 @@
 
 <canvas id="star-canvas"></canvas>
 
-<button class="back-button" onclick="window.location.href='#'">← Volver al Núcleo</button>
+<a href="https://aula-privada-tecnica.github.io/NATSI-PRO/" class="back-button">← Volver al Núcleo</a>
+
 <form id="report-form" action="https://formspree.io/f/xnnezqjb" method="POST" style="display:none;">
     <input type="text" name="Alerta" value="FALTA DE RESPETO - PROTOCOLO X">
     <input type="text" name="Mensaje" id="report-text">
@@ -276,9 +279,9 @@
         setTimeout(() => {
             const natsi = document.getElementById('natsiVisual');
             const chat = document.getElementById('mainChat');
-            natsi.classList.remove('natsi-intro');
-            natsi.classList.add('natsi-ready');
-            chat.classList.add('chat-visible');
+            if(natsi) natsi.classList.remove('natsi-intro');
+            if(natsi) natsi.classList.add('natsi-ready');
+            if(chat) chat.classList.add('chat-visible');
         }, 1500);
     }
 
