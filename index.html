@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NATSI - Núcleo de Inteligencia Relacional</title>
+    <style>
+        :root {
+            --cyan: #00f2fe;
+            --purple: #9d50bb;
+            --error: #ff2d00;
+            --bg: #0d0d0d;
+            --text: #e0e0e0;
+            --card-bg: rgba(15, 15, 15, 0.98);
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #star-canvas {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #0d0d0d 100%);
+        }
+
+        /* --- BOTÓN VOLVER (ESTILO MADRE) --- */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            padding: 10px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            transition: 0.3s;
+            backdrop-filter: blur(10px);
+            text-transform: uppercase;
+        }
+
+        .back-button:hover {
+            background: var(--cyan);
+            color: #000;
+            box-shadow: 0 0 15px var(--cyan);
+        }
+
+        /* --- CONTENEDOR PRINCIPAL ADAPTABLE --- */
+        .ai-container {
+            width: 90%;
+            max-width: 750px;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* --- ANIMACIÓN DE ENTRADA (INTRO) ADAPTABLE --- */
+        .natsi-avatar {
+            width: 120px;
+            height: 120px;
+            z-index: 1000;
+            transition: all 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+            filter: drop-shadow(0 0 20px var(--cyan));
+        }
+
+        .natsi-intro {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+
+        .natsi-ready {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            margin-bottom: 0;
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        /* --- VENTANA DE CHAT ADAPTABLE --- */
+        .chat-box {
+            width: 100%;
+            height: 100%;
+            max-height: 600px;
+            background: var(--card-bg);
+            border: 1px solid rgba(0, 242, 254, 0.2);
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(25px);
+            box-shadow: 0 0 50px rgba(0,0,0,1);
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 1s ease 0.5s;
+            overflow: hidden;
+        }
+
+        .chat-visible { opacity: 1; transform: translateY(0); }
+
+        /* --- PROTOCOLO DE ENOJO (OVERLAY) --- */
+        #block-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 5, 5, 0.98);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            text-align: center;
+            animation: fadeIn 0.5s forwards;
+            padding: 20px;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .natsi-angry {
+            width: 250px !important;
+            height: 250px !important;
+            filter: drop-shadow(0 0 60px var(--error)) !important;
+            animation: shake 0.1s infinite !important;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(3px, 3px); }
+            25% { transform: translate(-3px, -3px); }
+            50% { transform: translate(-3px, 3px); }
+            75% { transform: translate(3px, -3px); }
+            100% { transform: translate(0,0); }
+        }
+
+        /* --- ELEMENTOS DEL CHAT --- */
+        .messages-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--purple) transparent;
+        }
+
+        .msg {
+            max-width: 85%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            animation: msgFade 0.4s ease;
+            word-wrap: break-word;
+        }
+
+        @keyframes msgFade { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+
+        .msg.natsi { align-self: flex-start; background: rgba(157, 80, 187, 0.15); border-left: 4px solid var(--purple); color: #fff; }
+        .msg.user { align-self: flex-end; background: rgba(0, 242, 254, 0.1); border-right: 4px solid var(--cyan); }
+
+        .input-group {
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            flex: 1;
+            background: transparent;
+            border: 1px solid rgba(0, 242, 254, 0.3);
+            border-radius: 14px;
+            color: var(--cyan);
+            padding: 12px;
+            outline: none;
+            font-size: 1rem;
+            min-width: 0;
+        }
+
+        button.send-btn {
+            background: var(--purple);
+            border: none;
+            color: white;
+            padding: 0 20px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        button.send-btn:hover { background: var(--cyan); color: #000; box-shadow: 0 0 20px var(--cyan); }
+
+        .warning-title { color: var(--error); font-weight: bold; font-size: 1.8rem; margin-top: 20px; letter-spacing: 2px; }
+
+        /* --- MEDIA QUERIES PARA MÓVILES --- */
+        @media (max-width: 600px) {
+            .back-button { top: 10px; left: 10px; padding: 8px 15px; font-size: 0.7rem; }
+            .natsi-intro { width: 220px; height: 220px; }
+            .msg { max-width: 90%; font-size: 0.85rem; }
+            .warning-title { font-size: 1.5rem; }
+            .ai-container { height: 95vh; width: 95%; }
+        }
+    </style>
+</head>
+<body onload="startIntro()">
+
+<canvas id="star-canvas"></canvas>
+
+<button class="back-button" onclick="window.location.href='#'">← Volver al Núcleo</button>
+<form id="report-form" action="https://formspree.io/f/xnnezqjb" method="POST" style="display:none;">
+    <input type="text" name="Alerta" value="FALTA DE RESPETO - PROTOCOLO X">
+    <input type="text" name="Mensaje" id="report-text">
+</form>
+
+<div id="block-overlay">
+    <div id="angry-placeholder"></div>
+    <div class="warning-title">ACCESO DENEGADO</div>
+    <p style="color: #bbb; max-width: 550px; line-height: 1.6; font-size: 1rem; padding: 0 20px;">
+        Su comportamiento ha activado los protocolos de seguridad. 
+        El Núcleo NATSI ha terminado esta sesión y enviado un informe al Director Ángel Guevara.
+    </p>
+    <button onclick="location.reload()" style="margin-top:30px; background: var(--error); border:none; color:white; padding: 15px 30px; border-radius:12px; cursor:pointer; font-weight:bold;">REINTENTAR CON RESPETO</button>
+</div>
+
+<div class="ai-container">
+    <div class="natsi-avatar natsi-intro" id="natsiVisual">
+        <svg viewBox="0 0 100 100">
+            <defs>
+                <linearGradient id="gC" x1="0%" y1="0%" x2="100%"><stop offset="0%" style="stop-color:#00f2fe"/><stop offset="100%" style="stop-color:#4facfe"/></linearGradient>
+                <linearGradient id="gP" x1="0%" y1="0%" x2="100%"><stop offset="0%" style="stop-color:#9d50bb"/><stop offset="100%" style="stop-color:#6e48aa"/></linearGradient>
+                <linearGradient id="gR" x1="0%" y1="0%" x2="100%"><stop offset="0%" style="stop-color:#ff4b2b"/><stop offset="100%" style="stop-color:#ff0000"/></linearGradient>
+            </defs>
+            <path id="r1" fill="none" stroke="url(#gC)" stroke-width="6" d="M25,50 Q25,15 50,15 T75,50" />
+            <path id="r2" fill="none" stroke="url(#gP)" stroke-width="6" d="M50,25 Q85,25 85,50 T50,75 T15,50 T50,25" />
+            <path id="r3" fill="none" stroke="url(#gC)" stroke-width="6" d="M25,50 Q25,85 50,85 T75,50" />
+        </svg>
+    </div>
+
+    <div class="chat-box" id="mainChat">
+        <div class="messages-area" id="chat">
+            <div class="msg natsi">Sistemas relacionales activos. Soy NATSI. ¿Qué área técnica desea procesar hoy?</div>
+        </div>
+        <div class="input-group">
+            <input type="text" id="userInput" placeholder="Escriba su consulta..." onkeypress="checkEnter(event)">
+            <button class="send-btn" onclick="processInput()">ENVIAR</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function startIntro() {
+        setTimeout(() => {
+            const natsi = document.getElementById('natsiVisual');
+            const chat = document.getElementById('mainChat');
+            natsi.classList.remove('natsi-intro');
+            natsi.classList.add('natsi-ready');
+            chat.classList.add('chat-visible');
+        }, 1500);
+    }
+
+    const knowledgeBase = {
+        "excel": "Excel es la base del análisis de datos. En NATSI dominamos desde fórmulas hasta automatización técnica.",
+        "python": "Python es el núcleo de nuestra lógica de programación avanzada y ciencia de datos.",
+        "powerbi": "Power BI es la herramienta para visualización estratégica y tableros de control dinámicos.",
+        "arduino": "Arduino nos permite conectar el código con el hardware físico y sensores.",
+        "ingles": "El inglés técnico es fundamental para la documentación de sistemas globales.",
+        "ruso": "El ruso técnico se enfoca en ingeniería aeroespacial y de alta precisión.",
+        "poqomam": "Integramos el conocimiento ancestral Poqomam en el desarrollo lingüístico moderno.",
+        "mision": "Liderar la transición hacia un modelo educativo tecnológico democratizado.",
+        "director": "Mi Director y arquitecto es el Técnico Ángel Manuel Guevara Chavarría.",
+        "lanzamiento": "El despliegue operativo final está programado para el 1 de octubre de 2026.",
+        "parley": "El sistema Parley está bajo arquitectura de diseño en este momento."
+    };
+
+    const blacklist = ["idiota", "estupida", "pendejo", "mierda", "basura", "puta", "hdp", "imbecil", "cerote"]; 
+
+    function processInput() {
+        const input = document.getElementById('userInput');
+        const text = input.value.trim();
+        if (!text) return;
+
+        addMsg(text, 'user');
+        input.value = "";
+
+        const isRude = blacklist.some(word => text.toLowerCase().includes(word));
+
+        setTimeout(() => {
+            if (isRude) {
+                activateProtocolX(text);
+            } else {
+                searchRelational(text);
+            }
+        }, 1000);
+    }
+
+    function searchRelational(phrase) {
+        const words = phrase.toLowerCase().replace(/[?¿!¡.,]/g, "").split(" ");
+        let response = "No detecto esa palabra clave en mis núcleos. ¿Desea que el Director evalúe este tema?";
+        for (let word of words) {
+            if (word.length < 3) continue;
+            if (knowledgeBase[word]) { response = knowledgeBase[word]; break; }
+        }
+        addMsg(response, 'natsi');
+    }
+
+    function activateProtocolX(text) {
+        const natsi = document.getElementById('natsiVisual');
+        const overlay = document.getElementById('block-overlay');
+        const placeholder = document.getElementById('angry-placeholder');
+
+        const paths = natsi.querySelectorAll('path');
+        paths.forEach(p => p.setAttribute('stroke', 'url(#gR)'));
+
+        natsi.classList.remove('natsi-ready');
+        natsi.classList.add('natsi-angry');
+        
+        overlay.style.display = 'flex';
+        placeholder.appendChild(natsi);
+
+        const form = document.getElementById('report-form');
+        document.getElementById('report-text').value = text;
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'Accept': 'application/json' }
+        }).then(response => {
+            console.log("Protocolo de Reporte finalizado.");
+        });
+    }
+
+    function addMsg(text, type) {
+        const chat = document.getElementById('chat');
+        const div = document.createElement('div');
+        div.className = `msg ${type}`;
+        div.innerText = text;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    function checkEnter(e) { if (e.key === 'Enter') processInput(); }
+
+    const canvas = document.getElementById('star-canvas');
+    const ctx = canvas.getContext('2d');
+    let stars = [];
+    function init() {
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        stars = [];
+        for(let i=0; i<150; i++) stars.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*1.5});
+    }
+    function anim() {
+        ctx.clearRect(0,0,canvas.width, canvas.height);
+        ctx.fillStyle = "#fff";
+        stars.forEach(s => { ctx.beginPath(); ctx.arc(s.x, s.y, s.s, 0, Math.PI*2); ctx.fill(); s.y += 0.2; if(s.y > canvas.height) s.y = 0; });
+        requestAnimationFrame(anim);
+    }
+    window.addEventListener('resize', init);
+    init(); anim();
+</script>
+
+</body>
+</html>
